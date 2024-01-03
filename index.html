@@ -2,195 +2,407 @@
 <html lang="en">
 
 <head>
-    <title>
-        Todo List
-    </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script src="https://requirejs.org/docs/release/2.3.5/minified/require.js"></script>
+
+    <meta http-equiv="refresh" content="200"><!--  -->
+    <link rel="icon" type="image/x-icon" href="fav.icon">
+
+    <title>
+        Kanban Board
+    </title>
+
+    <style>
+        body {
+            background: linear-gradient(-45deg, #be5839, #af2a5d, #1c8bb3, #2cb394);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            height: 100vh;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        #mainDiv {
+            height: 90%;
+            padding-left: 3%;
+            padding-right: 3%;
+            padding-top: 5%;
+            padding-bottom: 5%;
+
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+
+        }
+
+        .vertical-line {
+            width: 0px;
+            border-left: 2px solid rgb(182, 176, 176);
+            height: 100%;
+            float: left;
+        }
+
+        .board-section {
+            margin: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            width: 100%;
+            padding: 1%;            
+        }
+
+        .board-heading {
+            color: white;
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+            border-bottom: 1px solid whitesmoke;
+        }
+
+        .board-card {
+
+            background-color: red;
+            height: fit-content;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3%;
+
+            margin: 20px;
+            background-color: rgb(215, 215, 215);
+            border-radius: 10px;
+
+            box-shadow: 2px 2px 10px rgb(122, 120, 120);
+        }
+
+        .board-section #New .board-card{
+            background-color: rgb(251, 178, 178);
+        }
+
+        .board-section #Planning .board-card{
+            background-color: rgb(253, 203, 133);
+        }
+
+        .board-section #In-Progress .board-card{
+            background-color: rgb(241, 250, 183);
+        }
+
+        .board-section #Done .board-card{
+            background-color: rgb(174, 246, 161);
+        }
+
+        header {
+            padding-top: 1%;
+            color: rgb(239, 218, 218);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 40px;
+            font-weight: bolder;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+        }
+
+        #createTaskButton {
+            border-radius: 10px;
+            font-size: 30px;
+            color: rgb(189, 185, 185);
+            background: transparent;
+            border: 0px;
+        }
+
+        #cancelButton {
+            border-radius: 10px;
+            font-size: 25px;
+            opacity: 0.8;
+            color: rgb(189, 185, 185);
+            background: transparent;
+            border: 0px;
+        }
+
+        #addTaskButton {
+            width: 70%;
+            background-color: rgb(48, 192, 48);
+
+            color: white;
+            font-size: large;
+
+            border-radius: 20px;
+            box-shadow: 2px 2px 10px rgb(120, 119, 119);
+            box-sizing: content-box;
+        }
+
+        .loginPopup {
+            position: relative;
+            text-align: center;
+            width: 100%;
+        }
+
+        .formPopup {
+            display: none;
+            position: fixed;
+            left: 45%;
+            top: 5%;
+            transform: translate(-50%, 5%);
+            border-radius: 23px;
+            border: 3px solid #999999;
+            z-index: 9;
+        }
+
+        .formContainer {
+            max-width: 400px;
+            padding: 20px;
+            background-color: whitesmoke;
+            border-radius: 20px;
+        }
+
+        #task,
+        #desc {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0 20px 0;
+            border: none;
+            background: #e2e2e2;
+            border-radius: 15px;
+        }
+
+        #form-heading {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            font-size: 25px;
+            color: cornflowerblue;
+        }
+    </style>
+
     <script>
-
-        function runOnLoad() {
-            createTable();
+        function allowDrop(ev) {
+            ev.preventDefault();
         }
 
-        let counter = 0;
-        function addButton() {
-            let newVal = document.getElementById("todovalue").value;
-            if (newVal != "") {
-                counter++;                
-                let newId = counter;
-                let newElement = { value: newVal, status: 1 };
-                sessionStorage.setItem(newId, JSON.stringify(newElement));
-                document.getElementById("todovalue").value = "";
-            }
-            createTable();
+        let taskCardId ;
+        function drag(ev) {
+            ev.dataTransfer.setData("text/html", ev.target.id);
+            taskCardId = ev.target.id;
         }
 
-        function readLocalStorage() {
-            let notEmpty = true;
-            let resultList = [];
+        function drop(ev) {
+            ev.preventDefault();
+            let data = ev.dataTransfer.getData("text/html");
+            ev.target.appendChild(document.getElementById(data));
+            let currSectionId = ev.target.id;
+            updateCardData(taskCardId, currSectionId);
+            taskCardId = "";
+        }
 
-            if (sessionStorage.length != 0) {
-                while (notEmpty) {
-                    for (i = 1; i < 100; i++) {
-                        let getData = sessionStorage.getItem(i);
-                        if (getData == null) {
-                        }
-                        else {
-                            let tempobj = JSON.parse(getData);
-                            let addInResultList = { id: i, value: tempobj.value, status: tempobj.status }
-                            resultList.push(addInResultList);
-                        }
-                    }
-                    notEmpty = false;
+        function updateCardData(cardid, sectionid) {
+            for (i of list) {
+                if (i.id == cardid) {
+                    i.state = sectionid;
                 }
             }
-            return resultList;
         }
 
-        function isChecked(chkid) {
-            let toggleDataStatus = JSON.parse(sessionStorage.getItem(chkid));
-
-            if (toggleDataStatus.status == 0) {
-                toggleDataStatus.status = 1;
-            }
-            else {
-                toggleDataStatus.status = 0;
-            }
-            sessionStorage.setItem(chkid, JSON.stringify(toggleDataStatus));
-
-            createTable();
+        function openForm() {
+            document.getElementById("popupForm").style.display = "block";
         }
 
-        function createTable() {
-            let localList = updatelist();
-
-            let table = '<table><tr><th>Things I need to Do &#9996; </th></tr>';
-
-            for (i of localList) {
-                let currid = '<tr><td>' + i.id + '</td>';
-                let currval = '<td>' + i.value + '</td>';
-                const donestatus = '<td><span id="chk' + i.id + '" onclick= "isChecked(`' + i.id + '`)"> &#9989; </span></td></tr>'
-                table += '<tr><td><span id="chk' + i.id + '" onclick= "isChecked(`' + i.id + '`)"> &#9989; </span> <span id="chk' + i.id + '" onclick= "removeChecked(`' + i.id + '`)"> &#10060; </span>' + i.value + '</td></tr>'
-            }
-
-            table += "</table>";
-            document.getElementById("todoDisplay").innerHTML = table;
+        function closeForm() {
+            document.getElementById("popupForm").style.display = "none";
         }
 
-        function updatelist() {
-            let localList = readLocalStorage();
-            for (i of localList) {
-                if (i.status == 0) {
-                    if (!String(i.value).includes("strike")) {
-                        i.value = "<strike>" + i.value + "</strike>";
-                    }
-                }
-                else {
-                    i.value = String(i.value).replace("<strike>", "");
-                    i.value = String(i.value).replace("</strike>", "");
-                }
+        let list = [
+            { id: 1, title: "First Element", state: "New", content: "" },
+            { id: 2, title: "Second Element", state: "Done", content: "" },
+            { id: 3, title: "Third Element", state: "New", content: "" },
+            { id: 4, title: "Fourth Element", state: "Planning", content: "" },
+        ];
+
+        function createTask() {
+            let ntitle = document.getElementById("task").value;
+            let ndesc = document.getElementById("desc").value;
+            addtask(ntitle, ndesc);
+
+            document.getElementById("task").value = "";
+            document.getElementById("desc").value = "";
+            closeForm();
+        }
+
+        function addtask(ntitle, ndesc) {
+            if (ntitle != "" && ndesc != "") {
+                let newId = list.length + 1;
+                let newElement = { id: newId, title: ntitle, state: "New", content: ndesc };
+                list.push(newElement);
+                console.log(list);
+
             }
-            return localList;
+            refreshBoard();
         }
 
         function removeChecked(delId) {
-            if (delId != null) {
-                sessionStorage.removeItem(delId);
+            let indexToDelete = 0;
+            if (delId != "") {
+                for (i of list) {
+                    console.log(indexToDelete);
+                    if (i.id == delId) {
+                        break;
+                    }
+                    indexToDelete++;
+                }
+                console.log(indexToDelete);
+                list.splice(indexToDelete, 1);
             }
-            createTable();
+            updateIds();
+            refreshBoard();
+        }
+
+        function updateIds() {
+            let counter = 1;
+            for (i of list) {
+                i.id = counter;
+                counter++;
+            }
         }
 
 
+        function runOnLoad() {
+            refreshBoard();
+        }
+
+        function refreshBoard() {
+            clearBoard();
+            for (i of list) {
+                let data, val;
+                switch (i.state) {
+                    case "New":
+                        data = document.getElementById("New");
+                        val = createCard(i);
+                        data.innerHTML += val;
+                        break;
+
+                    case "Done":
+                        data = document.getElementById("Done");
+                        val = createCard(i);
+                        data.innerHTML += val;
+                        break;
+
+                    case "Planning":
+                        data = document.getElementById("Planning");
+                        val = createCard(i);
+                        data.innerHTML += val;
+                        break;
+
+                    case "In-Progress":
+                        data = document.getElementById("In-Progress");
+                        val = createCard(i);
+                        data.innerHTML += val;
+                        break;
+
+                    default:
+                        console.log(" unable to work with card : ", i);
+                }
+            }
+        }
+
+        function createCard(i) {
+            let card = `<div id="` + i.id + `" class="board-card" draggable="true" ondragstart="drag(event)"><h3>` + i.title + `</h3><p>` + i.content + `</p></div>`;
+
+            return card;
+        }
+
+        function clearBoard() {
+            document.getElementById("New").innerHTML = "";
+            data = document.getElementById("Done").innerHTML = "";
+            data = document.getElementById("Planning").innerHTML = "";
+            document.getElementById("In-Progress").innerHTML = "";
+        }
     </script>
 
 </head>
 
 <body onload="runOnLoad()">
+    <header>
+        My Kanban Board
+    </header>
     <div id="mainDiv">
-        <div id="todoDisplay">
+        <div class="board-section">
+            <button id="createTaskButton" onclick="openForm()">
+                <h1 class="board-heading">
+                    New
+                </h1>
+            </button>
+            <div id="New" ondrop="drop(event)" ondragover="allowDrop(event)" style="width: 100%; height: 100%;">
+            
+            </div>
         </div>
 
-        <br />
-        <br />
+        <div class="vertical-line"></div>
 
-        <div style="display: flex; justify-content: space-between;">
-            <div>
-                <input type="text" id="todovalue" placeholder="Enter a Todo" height="25px" />
+        <div class="board-section">
+            <h1 class="board-heading">Planning</h1>
+            <div id="Planning" ondrop="drop(event)" ondragover="allowDrop(event)" style="width: 100%; height: 100%;">
+
             </div>
+        </div>
 
-            <div>
-                <h5 id="addButton" onclick="addButton()"
-                    style="background-color: rgb(47, 188, 47); border-radius: 10px; color: rgb(236, 230, 230);padding: 7px;">
-                    <b>Add Element</b>
-                </h5>
+        <div class="vertical-line"></div>
+
+        <div class="board-section">
+            <h1 class="board-heading">Progress</h1>
+            <div id="In-Progress" ondrop="drop(event)" ondragover="allowDrop(event)" style="width: 100%; height: 100%;">
+
+            </div>
+        </div>
+
+        <div class="vertical-line"></div>
+
+        <div class="board-section">
+            <h1 class="board-heading">Done</h1>
+            <div id="Done" ondrop="drop(event)" ondragover="allowDrop(event)" style="width: 100%; height: 100%;">
+
+            </div>
+        </div>
+    </div>
+    <div class="loginPopup">
+        <div class="formPopup" id="popupForm">
+            <div class="formContainer">
+                <h2 id="form-heading">
+                    Create a Task
+                    <button type="button" id="cancelButton" onclick="closeForm()">&#10060;</button>
+                </h2>
+
+                <label for="title">
+                    <strong>Title</strong>
+                </label>
+                <input type="text" id="task" placeholder="Task Title" name="title" required>
+
+                <label for="description">
+                    <strong>Description</strong>
+                </label>
+                <textarea id="desc" placeholder="Elaborate your idea" name="desc" required></textarea>
+                <button id="addTaskButton" onclick="createTask()">Add Task</button>
             </div>
         </div>
     </div>
 </body>
-
-
-<style>
-    table {
-        font-family: cursive;
-        font-size: large;
-        background-color: rgb(225, 225, 221);
-        width: 100%;
-        padding: 50px;
-        text-align: left;
-        box-shadow: 2px 2px 3px;
-        border-radius: 2px;
-        border: solid 2px black;
-    }
-
-    table th {
-        font-size: xx-large;
-        padding: 5px;
-    }
-
-    button {
-        border-radius: 10px;
-        background-color: rgb(210, 210, 95);
-        font-size: 15px;
-        color: rgb(144, 118, 118);
-        padding: 5px;
-    }
-
-    #mainDiv {
-        padding-left: 20%;
-        padding-top: 5%;
-        padding-right: 20%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-    }
-
-
-    body {
-        background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-        background-size: 400% 400%;
-        animation: gradient 15s ease infinite;
-        height: 100vh;
-    }
-
-    @keyframes gradient {
-        0% {
-            background-position: 0% 50%;
-        }
-
-        50% {
-            background-position: 100% 50%;
-        }
-
-        100% {
-            background-position: 0% 50%;
-        }
-    }
-</style>
 
 </html>
